@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<navigation xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/bottom_nav_graph"
+    app:startDestination="@id/fragmentSavedImages">
+
+    <fragment
+        android:id="@+id/fragmentSavedImages"
+        android:name="al10101.android.flinder.ui.SavedImagesFragment"
+        android:label="Saved Images"
+        tools:layout="@layout/fragment_saved_images" />
+    <fragment
+        android:id="@+id/fragmentFlickr"
+        android:name="al10101.android.flinder.ui.FlickrFragment"
+        android:label="Flickr"
+        tools:layout="@layout/fragment_flickr" />
+</navigation>
