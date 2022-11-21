@@ -1,7 +1,6 @@
 package al10101.android.flinder.ui
 
-import al10101.android.flinder.CardStackAdapter
-import al10101.android.flinder.CardStackCallback
+import al10101.android.flinder.*
 import android.os.Bundle
 import androidx.fragment.app.Fragment
 import android.view.LayoutInflater
@@ -15,12 +14,13 @@ import androidx.recyclerview.widget.DefaultItemAnimator
 import android.view.animation.LinearInterpolator
 import com.yuyakaido.android.cardstackview.SwipeableMethod
 import com.yuyakaido.android.cardstackview.StackFrom
-import al10101.android.flinder.ItemModel
-import al10101.android.flinder.R
 import android.util.Log
+import android.widget.ImageView
 import android.widget.TextView
 import android.widget.Toast
-import androidx.recyclerview.widget.DiffUtil
+import androidx.lifecycle.ViewModelProvider
+import androidx.recyclerview.widget.RecyclerView
+import com.squareup.picasso.Picasso
 
 private const val TAG = "FlickrFragment"
 
@@ -28,8 +28,17 @@ class FlickrFragment : Fragment() {
 
     private lateinit var binding: FragmentFlickrBinding
 
+    private lateinit var photoGalleryViewModel: PhotoGalleryViewModel
+
     private lateinit var manager: CardStackLayoutManager
-    private lateinit var adapter: CardStackAdapter
+    private var adapter: CardStackAdapter? = CardStackAdapter(emptyList())
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+
+        photoGalleryViewModel = ViewModelProvider(this).get(PhotoGalleryViewModel::class.java)
+
+    }
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
@@ -47,17 +56,6 @@ class FlickrFragment : Fragment() {
 
             override fun onCardSwiped(direction: Direction) {
                 Log.d(TAG, "onCardSwiped: p= ${manager.topPosition}  d= ${direction.name}")
-                val text = when (direction) {
-                    Direction.Right -> "right"
-                    Direction.Left -> "left"
-                    Direction.Bottom -> "bottom"
-                    Direction.Top -> "top"
-                }
-                Toast.makeText(context, "Direction $text", Toast.LENGTH_SHORT).show()
-                // Paginating
-                if (manager.topPosition == adapter.itemCount - 5) {
-                    paginate()
-                }
             }
 
             override fun onCardRewound() {
@@ -69,16 +67,33 @@ class FlickrFragment : Fragment() {
             }
 
             override fun onCardAppeared(view: View, position: Int) {
-                val tv = view.findViewById(R.id.item_name) as TextView
+                val tv = view.findViewById(R.id.item_title) as TextView
                 Log.d(TAG, "onCardAppeared: $position  name= ${tv.text}")
             }
 
             override fun onCardDisappeared(view: View, position: Int) {
-                val tv = view.findViewById(R.id.item_name) as TextView
+                val tv = view.findViewById(R.id.item_title) as TextView
                 Log.d(TAG, "onCardDisappeared: $position  name= ${tv.text}")
             }
 
         })
+
+        manager.apply {
+            setStackFrom(StackFrom.None)
+            setVisibleCount(3)
+            setTranslationInterval(8.0f)
+            setScaleInterval(0.95f)
+            setSwipeThreshold(0.3f)
+            setMaxDegree(20.0f)
+            setDirections(Direction.FREEDOM)
+            setCanScrollHorizontal(true)
+            setSwipeableMethod(SwipeableMethod.Manual)
+            setOverlayInterpolator(LinearInterpolator())
+        }
+
+        binding.cardStackView.layoutManager = manager
+        binding.cardStackView.adapter = adapter
+        binding.cardStackView.itemAnimator = DefaultItemAnimator()
 
         return binding.root
     }
@@ -86,47 +101,54 @@ class FlickrFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        manager.setStackFrom(StackFrom.None)
-        manager.setVisibleCount(3)
-        manager.setTranslationInterval(8.0f)
-        manager.setScaleInterval(0.95f)
-        manager.setSwipeThreshold(0.3f)
-        manager.setMaxDegree(20.0f)
-        manager.setDirections(Direction.FREEDOM)
-        manager.setCanScrollHorizontal(true)
-        manager.setSwipeableMethod(SwipeableMethod.Manual)
-        manager.setOverlayInterpolator(LinearInterpolator())
+        photoGalleryViewModel.galleryItemLiveData.observe(
+            viewLifecycleOwner, { galleryItems ->
+                Log.d(TAG, "Have gallery items from ViewModel $galleryItems")
+                updateUI(galleryItems)
+            }
+        )
 
-        adapter = CardStackAdapter(addList())
+    }
 
-        binding.cardStackView.layoutManager = manager
+    private fun updateUI(items: List<ItemModel>) {
+        adapter = CardStackAdapter(items)
         binding.cardStackView.adapter = adapter
-        binding.cardStackView.itemAnimator = DefaultItemAnimator()
+    }
+
+    private inner class CardStackAdapter(var items: List<ItemModel>)
+        : RecyclerView.Adapter<CardStackHolder>() {
+
+        override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): CardStackHolder {
+            val inflater = LayoutInflater.from(parent.context)
+            val view = inflater.inflate(R.layout.item_card, parent, false)
+            return CardStackHolder(view)
+        }
+
+        override fun onBindViewHolder(holder: CardStackHolder, position: Int) {
+            val galleryItem = items[position]
+            holder.bindDrawable(galleryItem)
+        }
+
+        override fun getItemCount() = items.size
 
     }
 
-    private fun paginate() {
-        val old = adapter.items
-        val new: List<ItemModel> = ArrayList(addList())
-        val callback = CardStackCallback(old, new)
-        val result = DiffUtil.calculateDiff(callback)
-        adapter.items = new
-        result.dispatchUpdatesTo(adapter)
-    }
+    private class CardStackHolder(view: View): RecyclerView.ViewHolder(view) {
 
-    private fun addList(): List<ItemModel> {
-        val items: MutableList<ItemModel> = ArrayList()
-        items.add(ItemModel(R.drawable.sample1, "Markonah", "24", "Jember"))
-        items.add(ItemModel(R.drawable.sample1, "Marpuah", "20", "Malang"))
-        items.add(ItemModel(R.drawable.sample1, "Sukijah", "27", "Jonggol"))
-        items.add(ItemModel(R.drawable.sample1, "Markobar", "19", "Bandung"))
-        items.add(ItemModel(R.drawable.sample1, "Marmut", "25", "Hutan"))
-        items.add(ItemModel(R.drawable.sample1, "Markonah", "24", "Jember"))
-        items.add(ItemModel(R.drawable.sample1, "Marpuah", "20", "Malang"))
-        items.add(ItemModel(R.drawable.sample1, "Sukijah", "27", "Jonggol"))
-        items.add(ItemModel(R.drawable.sample1, "Markobar", "19", "Bandung"))
-        items.add(ItemModel(R.drawable.sample1, "Marmut", "25", "Hutan"))
-        return items
+        private val imageView = itemView.findViewById(R.id.item_image) as ImageView
+        private val titleTextView = itemView.findViewById(R.id.item_title) as TextView
+        private val ownerTextView = itemView.findViewById(R.id.item_owner) as TextView
+        private val urlTextView = itemView.findViewById(R.id.item_url) as TextView
+
+        fun bindDrawable(data: ItemModel) {
+            Picasso.get()
+                .load(data.url)
+                .into(imageView)
+            titleTextView.text = data.title
+            ownerTextView.text = data.owner
+            urlTextView.text = data.url
+        }
+
     }
 
     companion object {

@@ -12,7 +12,7 @@ class CardStackCallback(
     override fun getNewListSize(): Int = new.size
 
     override fun areItemsTheSame(oldItemPosition: Int, newItemPosition: Int): Boolean {
-        return old[oldItemPosition].image == new[newItemPosition].image
+        return old[oldItemPosition].url == new[newItemPosition].url
     }
 
     override fun areContentsTheSame(oldItemPosition: Int, newItemPosition: Int): Boolean {
